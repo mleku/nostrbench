@@ -3,9 +3,10 @@ module mleku.net/nostrbench
 go 1.22.3
 
 require (
+	github.com/klauspost/compress v1.17.8
 	github.com/mailru/easyjson v0.7.7
 	github.com/nbd-wtf/go-nostr v0.32.0
-	mleku.net/nostr v1.0.3
+	mleku.net/nostr v1.0.4
 )
 
 require (
