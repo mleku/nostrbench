@@ -10,7 +10,7 @@ import (
 )
 
 const MaxMessageSize = 1_000_000
-const GatherMessages = 2000
+const GatherMessages = 10000
 
 func main() {
 	inFile, err := os.Open(os.Args[1])
