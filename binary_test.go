@@ -9,6 +9,7 @@ import (
 
 	_ "embed"
 
+	"github.com/mailru/easyjson"
 	"github.com/nbd-wtf/go-nostr"
 	. "github.com/nbd-wtf/go-nostr/binary"
 	event2 "mleku.net/nostr/event"
@@ -46,13 +47,13 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 		events2[i] = evt2
 	}
 
-	// b.Run("event2.MarshalJSON", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, evt := range events2 {
-	// 			_, _ = evt.MarshalJSON()
-	// 		}
-	// 	}
-	// })
+	b.Run("event2.MarshalJSON", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, evt := range events2 {
+				_, _ = evt.MarshalJSON()
+			}
+		}
+	})
 
 	b.Run("event2.EventToBinary", func(b *testing.B) {
 		var maxSize int
@@ -71,13 +72,13 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 		}
 	})
 
-	// b.Run("easyjson.Marshal", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, evt := range events {
-	// 			easyjson.Marshal(evt)
-	// 		}
-	// 	}
-	// })
+	b.Run("easyjson.Marshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, evt := range events {
+				easyjson.Marshal(evt)
+			}
+		}
+	})
 
 	b.Run("gob.Encode", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
@@ -97,6 +98,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 		}
 	})
 
+	// this does not comprehend events over 64kb in size
 	// b.Run("binary.MarshalBinary", func(b *testing.B) {
 	// 	for i := 0; i < b.N; i++ {
 	// 		for _, bevt := range binaryEvents {
@@ -135,17 +137,17 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 		}
 	})
 
-	// b.Run("easyjson.Unmarshal", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, jevt := range normalEvents {
-	// 			evt := &nostr.Event{}
-	// 			err := easyjson.Unmarshal([]byte(jevt), evt)
-	// 			if err != nil {
-	// 				b.Fatalf("failed to unmarshal: %s", err)
-	// 			}
-	// 		}
-	// 	}
-	// })
+	b.Run("easyjson.Unmarshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, jevt := range normalEvents {
+				evt := &nostr.Event{}
+				err := easyjson.Unmarshal([]byte(jevt), evt)
+				if err != nil {
+					b.Fatalf("failed to unmarshal: %s", err)
+				}
+			}
+		}
+	})
 
 	b.Run("gob.Decode", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
@@ -170,41 +172,41 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 		}
 	})
 
-	// b.Run("binary.UnmarshalBinary", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, bevt := range events {
-	// 			evt := &Event{}
-	// 			err := UnmarshalBinary(bevt, evt)
-	// 			if err != nil {
-	// 				b.Fatalf("failed to unmarshal: %s", err)
-	// 			}
-	// 		}
-	// 	}
-	// })
+	b.Run("binary.UnmarshalBinary", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, bevt := range events {
+				evt := &Event{}
+				err := UnmarshalBinary(bevt, evt)
+				if err != nil {
+					b.Fatalf("failed to unmarshal: %s", err)
+				}
+			}
+		}
+	})
 
-	// b.Run("easyjson.Unmarshal+sig", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, nevt := range normalEvents {
-	// 			evt := &nostr.Event{}
-	// 			err := easyjson.Unmarshal([]byte(nevt), evt)
-	// 			if err != nil {
-	// 				b.Fatalf("failed to unmarshal: %s", err)
-	// 			}
-	// 			evt.CheckSignature()
-	// 		}
-	// 	}
-	// })
-	//
-	// b.Run("binary.Unmarshal+sig", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, bevt := range events {
-	// 			evt := &nostr.Event{}
-	// 			err := Unmarshal(bevt, evt)
-	// 			if err != nil {
-	// 				b.Fatalf("failed to unmarshal: %s", err)
-	// 			}
-	// 			evt.CheckSignature()
-	// 		}
-	// 	}
-	// })
+	b.Run("easyjson.Unmarshal+sig", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, nevt := range normalEvents {
+				evt := &nostr.Event{}
+				err := easyjson.Unmarshal([]byte(nevt), evt)
+				if err != nil {
+					b.Fatalf("failed to unmarshal: %s", err)
+				}
+				evt.CheckSignature()
+			}
+		}
+	})
+
+	b.Run("binary.Unmarshal+sig", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, bevt := range events {
+				evt := &nostr.Event{}
+				err := Unmarshal(bevt, evt)
+				if err != nil {
+					b.Fatalf("failed to unmarshal: %s", err)
+				}
+				evt.CheckSignature()
+			}
+		}
+	})
 }
