@@ -3,8 +3,9 @@ module mleku.net/nostrbench
 go 1.22.3
 
 require (
+	github.com/mailru/easyjson v0.7.7
 	github.com/nbd-wtf/go-nostr v0.32.0
-	mleku.net/nostr v1.0.4
+	mleku.net/nostr v1.0.8
 )
 
 require (
@@ -19,7 +20,6 @@ require (
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
-	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.0.2 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
@@ -29,6 +29,6 @@ require (
 	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	mleku.net/atomic v1.11.10 // indirect
-	mleku.net/ec v1.0.10 // indirect
-	mleku.net/slog v1.2.0 // indirect
+	mleku.net/ec v1.0.11 // indirect
+	mleku.net/slog v1.2.1 // indirect
 )

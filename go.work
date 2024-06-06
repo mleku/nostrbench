@@ -1,7 +1,7 @@
 go 1.22.3
 
 use .
-//replace mleku.net/eventstore => ../eventstore
-//replace mleku.net/qu => ../qu
-//replace mleku.net/nostr => ../nostr
-//replace mleku.net/slog => ../slog
+replace mleku.net/eventstore => ../eventstore
+replace mleku.net/qu => ../qu
+replace mleku.net/nostr => ../nostr
+replace mleku.net/slog => ../slog
