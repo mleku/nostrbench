@@ -129,6 +129,16 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 		bevents[i] = bevt2
 	}
 
+	b.Run("event2.UnmarshalJSON", func(b *testing.B) {
+		var ev event2.T
+		for i := 0; i < b.N; i++ {
+			for _, evt := range normalEvents {
+				if err := json.Unmarshal([]byte(evt), &ev); err != nil {
+				}
+			}
+		}
+	})
+
 	b.Run("event2.BinaryToEvent", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, bevt := range bevents {
@@ -172,41 +182,41 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 		}
 	})
 
-	b.Run("binary.UnmarshalBinary", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			for _, bevt := range events {
-				evt := &Event{}
-				err := UnmarshalBinary(bevt, evt)
-				if err != nil {
-					b.Fatalf("failed to unmarshal: %s", err)
-				}
-			}
-		}
-	})
+	// b.Run("binary.UnmarshalBinary", func(b *testing.B) {
+	// 	for i := 0; i < b.N; i++ {
+	// 		for _, bevt := range events {
+	// 			evt := &Event{}
+	// 			err := UnmarshalBinary(bevt, evt)
+	// 			if err != nil {
+	// 				b.Fatalf("failed to unmarshal: %s", err)
+	// 			}
+	// 		}
+	// 	}
+	// })
 
-	b.Run("easyjson.Unmarshal+sig", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			for _, nevt := range normalEvents {
-				evt := &nostr.Event{}
-				err := easyjson.Unmarshal([]byte(nevt), evt)
-				if err != nil {
-					b.Fatalf("failed to unmarshal: %s", err)
-				}
-				evt.CheckSignature()
-			}
-		}
-	})
+	// b.Run("easyjson.Unmarshal+sig", func(b *testing.B) {
+	// 	for i := 0; i < b.N; i++ {
+	// 		for _, nevt := range normalEvents {
+	// 			evt := &nostr.Event{}
+	// 			err := easyjson.Unmarshal([]byte(nevt), evt)
+	// 			if err != nil {
+	// 				b.Fatalf("failed to unmarshal: %s", err)
+	// 			}
+	// 			evt.CheckSignature()
+	// 		}
+	// 	}
+	// })
 
-	b.Run("binary.Unmarshal+sig", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			for _, bevt := range events {
-				evt := &nostr.Event{}
-				err := Unmarshal(bevt, evt)
-				if err != nil {
-					b.Fatalf("failed to unmarshal: %s", err)
-				}
-				evt.CheckSignature()
-			}
-		}
-	})
+	// b.Run("binary.Unmarshal+sig", func(b *testing.B) {
+	// 	for i := 0; i < b.N; i++ {
+	// 		for _, bevt := range events {
+	// 			evt := &nostr.Event{}
+	// 			err := Unmarshal(bevt, evt)
+	// 			if err != nil {
+	// 				b.Fatalf("failed to unmarshal: %s", err)
+	// 			}
+	// 			evt.CheckSignature()
+	// 		}
+	// 	}
+	// })
 }
