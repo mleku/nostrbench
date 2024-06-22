@@ -3,11 +3,10 @@ package nostrbench
 import (
 	"bufio"
 	"bytes"
+	_ "embed"
 	"encoding/gob"
 	"encoding/json"
 	"testing"
-
-	_ "embed"
 
 	"github.com/mailru/easyjson"
 	"github.com/nbd-wtf/go-nostr"
@@ -48,6 +47,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 	}
 
 	b.Run("event2.MarshalJSON", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, evt := range events2 {
 				_, _ = evt.MarshalJSON()
@@ -56,6 +56,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 	})
 
 	b.Run("event2.EventToBinary", func(b *testing.B) {
+		b.ReportAllocs()
 		var maxSize int
 		for _, evt := range events2 {
 			m := event2.EstimateSize(evt)
@@ -73,6 +74,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 	})
 
 	b.Run("easyjson.Marshal", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, evt := range events {
 				easyjson.Marshal(evt)
@@ -81,6 +83,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 	})
 
 	b.Run("gob.Encode", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, evt := range events {
 				var buf bytes.Buffer
@@ -91,6 +94,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 	})
 
 	b.Run("binary.Marshal", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, evt := range events {
 				Marshal(evt)
@@ -130,6 +134,7 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 	}
 
 	b.Run("event2.UnmarshalJSON", func(b *testing.B) {
+		b.ReportAllocs()
 		var ev event2.T
 		for i := 0; i < b.N; i++ {
 			for _, evt := range normalEvents {
@@ -140,6 +145,7 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 	})
 
 	b.Run("event2.BinaryToEvent", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, bevt := range bevents {
 				event2.BinaryToEvent(bevt)
@@ -148,6 +154,7 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 	})
 
 	b.Run("easyjson.Unmarshal", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, jevt := range normalEvents {
 				evt := &nostr.Event{}
@@ -160,6 +167,7 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 	})
 
 	b.Run("gob.Decode", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, gevt := range gevents {
 				evt := &nostr.Event{}
@@ -171,6 +179,7 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 	})
 
 	b.Run("binary.Unmarshal", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, bevt := range events {
 				evt := &nostr.Event{}

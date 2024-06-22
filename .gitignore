@@ -17,5 +17,9 @@
 !Makefile
 !*.json
 !*.pdf
+!vendor/**
+!vendor
+!vendor/
 # ...even if they are in subdirectories
 !*/
+!/vendor/
