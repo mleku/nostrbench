@@ -48,9 +48,12 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 
 	b.Run("event2.MarshalJSON", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, evt := range events2 {
-				_, _ = evt.MarshalJSON()
+			_, _ = events2[counter].MarshalJSON()
+			counter++
+			if counter == len(events2) {
+				counter = 0
 			}
 		}
 	})
@@ -65,39 +68,51 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 			}
 		}
 		evtBuf := event2.NewWriteBuffer(maxSize)
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, evt := range events2 {
-				_ = evtBuf.WriteEvent(evt)
-				evtBuf.Buf = evtBuf.Buf[:0]
+			_ = evtBuf.WriteEvent(events2[counter])
+			evtBuf.Buf = evtBuf.Buf[:0]
+			counter++
+			if counter == len(events2) {
+				counter = 0
 			}
 		}
 	})
 
 	b.Run("easyjson.Marshal", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, evt := range events {
-				easyjson.Marshal(evt)
+			easyjson.Marshal(events[counter])
+			counter++
+			if counter == len(events) {
+				counter = 0
 			}
 		}
 	})
 
 	b.Run("gob.Encode", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, evt := range events {
-				var buf bytes.Buffer
-				gob.NewEncoder(&buf).Encode(evt)
-				_ = buf.Bytes()
+			var buf bytes.Buffer
+			gob.NewEncoder(&buf).Encode(events[counter])
+			counter++
+			if counter == len(events) {
+				counter = 0
 			}
+			_ = buf.Bytes()
 		}
 	})
 
 	b.Run("binary.Marshal", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, evt := range events {
-				Marshal(evt)
+			Marshal(events[counter])
+			counter++
+			if counter == len(events) {
+				counter = 0
 			}
 		}
 	})
@@ -136,57 +151,73 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 	b.Run("event2.UnmarshalJSON", func(b *testing.B) {
 		b.ReportAllocs()
 		var ev event2.T
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, evt := range normalEvents {
-				if err := json.Unmarshal([]byte(evt), &ev); err != nil {
-				}
+			if err := json.Unmarshal([]byte(normalEvents[counter]),
+				&ev); err != nil {
+			}
+			counter++
+			if counter == len(normalEvents) {
+				counter = 0
 			}
 		}
 	})
 
 	b.Run("event2.BinaryToEvent", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, bevt := range bevents {
-				event2.BinaryToEvent(bevt)
+			event2.BinaryToEvent(bevents[counter])
+			counter++
+			if counter == len(bevents) {
+				counter = 0
 			}
 		}
 	})
 
 	b.Run("easyjson.Unmarshal", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, jevt := range normalEvents {
-				evt := &nostr.Event{}
-				err := easyjson.Unmarshal([]byte(jevt), evt)
-				if err != nil {
-					b.Fatalf("failed to unmarshal: %s", err)
-				}
+			evt := &nostr.Event{}
+			err := easyjson.Unmarshal([]byte(normalEvents[counter]), evt)
+			if err != nil {
+				b.Fatalf("failed to unmarshal: %s", err)
+			}
+			counter++
+			if counter == len(normalEvents) {
+				counter = 0
 			}
 		}
 	})
 
 	b.Run("gob.Decode", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, gevt := range gevents {
-				evt := &nostr.Event{}
-				buf := bytes.NewBuffer(gevt)
-				evt = &nostr.Event{}
-				gob.NewDecoder(buf).Decode(evt)
+			evt := &nostr.Event{}
+			buf := bytes.NewBuffer(gevents[counter])
+			evt = &nostr.Event{}
+			gob.NewDecoder(buf).Decode(evt)
+			counter++
+			if counter == len(gevents) {
+				counter = 0
 			}
 		}
 	})
 
 	b.Run("binary.Unmarshal", func(b *testing.B) {
 		b.ReportAllocs()
+		var counter int
 		for i := 0; i < b.N; i++ {
-			for _, bevt := range events {
-				evt := &nostr.Event{}
-				err := Unmarshal(bevt, evt)
-				if err != nil {
-					b.Fatalf("failed to unmarshal: %s", err)
-				}
+			evt := &nostr.Event{}
+			err := Unmarshal(events[counter], evt)
+			if err != nil {
+				b.Fatalf("failed to unmarshal: %s", err)
+			}
+			counter++
+			if counter == len(events) {
+				counter = 0
 			}
 		}
 	})
