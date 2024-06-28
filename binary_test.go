@@ -9,18 +9,22 @@ import (
 	"testing"
 
 	"github.com/mailru/easyjson"
+	event3 "github.com/mleku/nodl/pkg/event"
 	"github.com/nbd-wtf/go-nostr"
 	. "github.com/nbd-wtf/go-nostr/binary"
 	event2 "mleku.net/nostr/event"
 )
 
 //go:embed out.jsonl
-var events []byte
+var rawEvents []byte
+
 var normalEvents []string
 
+var evts = make([]*event3.T, 0, 10000)
+
 func init() {
-	// decompress embedded events
-	buf := bytes.NewBuffer(events)
+	// decompress embedded rawEvents
+	buf := bytes.NewBuffer(rawEvents)
 	scanner := bufio.NewScanner(buf)
 	scanBuffer := make([]byte, 0, 1_000_000)
 	scanner.Buffer(scanBuffer, 999_999)
@@ -28,9 +32,20 @@ func init() {
 		s := string(scanner.Bytes())
 		normalEvents = append(normalEvents, s)
 	}
+	scanner = bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	var ev *event3.T
+	var err error
+	for scanner.Scan() {
+		b := scanner.Bytes()
+		if ev, _, err = event3.Unmarshal(b); err != nil {
+			panic(err)
+		}
+		evts = append(evts, ev)
+	}
+
 }
 
-func BenchmarkBinaryEncoding(b *testing.B) {
+func BenchmarkEncoding(b *testing.B) {
 	events := make([]*nostr.Event, len(normalEvents))
 	events2 := make([]*event2.T, len(normalEvents))
 	binaryEvents := make([]*Event, len(normalEvents))
@@ -45,6 +60,21 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 		}
 		events2[i] = evt2
 	}
+
+	b.Run("nodl.Marshal", func(bb *testing.B) {
+		var i int
+		var out []byte
+		bb.ReportAllocs()
+		var counter int
+		for i = 0; i < bb.N; i++ {
+			out = evts[counter].Marshal(out)
+			out = out[:0]
+			counter++
+			if counter != len(evts) {
+				counter = 0
+			}
+		}
+	})
 
 	b.Run("event2.MarshalJSON", func(b *testing.B) {
 		b.ReportAllocs()
@@ -117,7 +147,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 		}
 	})
 
-	// this does not comprehend events over 64kb in size
+	// this does not comprehend rawEvents over 64kb in size
 	// b.Run("binary.MarshalBinary", func(b *testing.B) {
 	// 	for i := 0; i < b.N; i++ {
 	// 		for _, bevt := range binaryEvents {
@@ -128,7 +158,7 @@ func BenchmarkBinaryEncoding(b *testing.B) {
 
 }
 
-func BenchmarkBinaryDecoding(b *testing.B) {
+func BenchmarkDecoding(b *testing.B) {
 	events := make([][]byte, len(normalEvents))
 	gevents := make([][]byte, len(normalEvents))
 	bevents := make([][]byte, len(normalEvents))
@@ -147,6 +177,24 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 		bevt2, _ := event2.EventToBinary(evt2)
 		bevents[i] = bevt2
 	}
+
+	b.Run("nodl.Unmarshal", func(bb *testing.B) {
+		bb.ReportAllocs()
+		scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+		var ev *event3.T
+		var err error
+		for i := 0; i < bb.N; i++ {
+			if !scanner.Scan() {
+				scanner = bufio.NewScanner(bytes.NewBuffer(rawEvents))
+				scanner.Scan()
+			}
+			b := scanner.Bytes()
+			if ev, _, err = event3.Unmarshal(b); err != nil {
+				bb.Fatal(err)
+			}
+			evts = append(evts, ev)
+		}
+	})
 
 	b.Run("event2.UnmarshalJSON", func(b *testing.B) {
 		b.ReportAllocs()
@@ -224,7 +272,7 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 
 	// b.Run("binary.UnmarshalBinary", func(b *testing.B) {
 	// 	for i := 0; i < b.N; i++ {
-	// 		for _, bevt := range events {
+	// 		for _, bevt := range rawEvents {
 	// 			evt := &Event{}
 	// 			err := UnmarshalBinary(bevt, evt)
 	// 			if err != nil {
@@ -249,7 +297,7 @@ func BenchmarkBinaryDecoding(b *testing.B) {
 
 	// b.Run("binary.Unmarshal+sig", func(b *testing.B) {
 	// 	for i := 0; i < b.N; i++ {
-	// 		for _, bevt := range events {
+	// 		for _, bevt := range rawEvents {
 	// 			evt := &nostr.Event{}
 	// 			err := Unmarshal(bevt, evt)
 	// 			if err != nil {
