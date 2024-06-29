@@ -57,9 +57,7 @@ func FromUnix(t int64) T { return T(t) }
 // FromBytes converts from a string of raw bytes.
 func FromBytes(b []byte) T { return T(binary.BigEndian.Uint64(b)) }
 
-func (tp *Tp) String() string {
-	return fmt.Sprint(tp.T())
-}
+func (tp *Tp) String() string { return fmt.Sprint(tp.T()) }
 
 func (tp *Tp) Clone() (tc *Tp) {
 	cp := *tp

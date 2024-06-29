@@ -6,14 +6,15 @@ import (
 	"github.com/minio/sha256-simd"
 	"mleku.net/ec/schnorr"
 	"mleku.net/ec/secp256k1"
+	"mleku.net/log"
 	"mleku.net/nostr/eventid"
 	"mleku.net/nostr/hex"
 	"mleku.net/nostr/kind"
+	"mleku.net/nostr/pubkey"
 	"mleku.net/nostr/tags"
 	"mleku.net/nostr/timestamp"
 	"mleku.net/nostr/wire/array"
 	"mleku.net/nostr/wire/object"
-	"mleku.net/slog"
 )
 
 var log, chk = slog.New(os.Stderr)
@@ -29,7 +30,7 @@ type T struct {
 	// ID is the SHA256 hash of the canonical encoding of the event
 	ID *eventid.T `json:"id"`
 	// PubKey is the public key of the event creator in *hexadecimal* format
-	PubKey string `json:"pubkey"`
+	PubKey *pubkey.T `json:"pubkey"`
 	// CreatedAt is the UNIX timestamp of the event according to the event
 	// creator (never trust a timestamp!)
 	CreatedAt timestamp.T `json:"created_at"`
@@ -104,16 +105,16 @@ func (ev *T) GetID() *eventid.T {
 // invalid.
 func (ev *T) CheckSignature() (valid bool, err error) {
 	// decode pubkey hex to bytes.
-	var pkBytes []byte
-	if pkBytes, err = hex.Dec(ev.PubKey); chk.D(err) {
-		err = log.E.Err("event pubkey '%s' is invalid hex: %w", ev.PubKey, err)
-		log.D.Ln(err)
-		return
-	}
+	// var pkBytes []byte
+	// if pkBytes, err = hex.Dec(ev.PubKey); chk.D(err) {
+	// 	err = log.E.Err("event pubkey '%s' is invalid hex: %w", ev.PubKey, err)
+	// 	log.D.Ln(err)
+	// 	return
+	// }
 	// parse pubkey bytes.
 	var pk *secp256k1.PublicKey
-	if pk, err = schnorr.ParsePubKey(pkBytes); chk.D(err) {
-		err = log.E.Err("event has invalid pubkey '%s': %w", ev.PubKey, err)
+	if pk, err = schnorr.ParsePubKey(ev.PubKey.Bytes()); chk.D(err) {
+		err = log.E.Err("event has invalid pubkey '%0x': %w", ev.PubKey, err)
 		log.D.Ln(err)
 		return
 	}
@@ -155,9 +156,14 @@ func (ev *T) Sign(skStr string, so ...schnorr.SignOption) (err error) {
 	}
 	// parse bytes to get secret key (size checks have been done).
 	sk := secp256k1.SecKeyFromBytes(skBytes)
-	ev.PubKey = hex.Enc(schnorr.SerializePubKey(sk.PubKey()))
-	err = ev.SignWithSecKey(sk, so...)
-	chk.D(err)
+	pk := sk.PubKey()
+	pkb := schnorr.SerializePubKey(pk)
+	if ev.PubKey, err = pubkey.NewFromBytes(pkb); chk.E(err) {
+		return
+	}
+	if err = ev.SignWithSecKey(sk, so...); chk.D(err) {
+		return
+	}
 	return
 }
 
@@ -175,7 +181,7 @@ func (ev *T) SignWithSecKey(sk *secp256k1.SecretKey,
 		return
 	}
 	// we know secret key is good so we can generate the public key.
-	ev.PubKey = hex.Enc(schnorr.SerializePubKey(sk.PubKey()))
+	ev.PubKey.FromBytesUnsafe(schnorr.SerializePubKey(sk.PubKey()))
 	ev.Sig = hex.Enc(sig.Serialize())
 	return nil
 }

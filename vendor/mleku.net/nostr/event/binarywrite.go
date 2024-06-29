@@ -10,6 +10,7 @@ import (
 	"mleku.net/nostr/eventid"
 	"mleku.net/nostr/hex"
 	"mleku.net/nostr/kind"
+	"mleku.net/nostr/pubkey"
 	"mleku.net/nostr/tags"
 	"mleku.net/nostr/timestamp"
 )
@@ -73,13 +74,8 @@ func (w *WriteBuffer) WriteID(id *eventid.T) (err error) {
 	return
 }
 
-func (w *WriteBuffer) WritePubKey(pk string) (err error) {
-	if len(pk) != 2*schnorr.PubKeyBytesLen {
-		return errors.New("pubkey hex must be 64 characters")
-	}
-	if w.Buf, err = hex.DecAppend(w.Buf, []byte(pk)); chk.E(err) {
-		return
-	}
+func (w *WriteBuffer) WritePubKey(pk *pubkey.T) (err error) {
+	w.Buf = append(w.Buf, pk.Bytes()...)
 	return
 }
 

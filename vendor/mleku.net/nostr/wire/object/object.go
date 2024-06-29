@@ -21,10 +21,11 @@ import (
 	"strings"
 	"time"
 
+	"mleku.net/log"
 	"mleku.net/nostr/eventid"
+	"mleku.net/nostr/pubkey"
 	"mleku.net/nostr/tags"
 	"mleku.net/nostr/wire/text"
-	"mleku.net/slog"
 )
 
 var log, chk = slog.New(os.Stderr)
@@ -122,6 +123,8 @@ func (t T) Buffer(b ...*bytes.Buffer) (buf *bytes.Buffer) {
 			_, _ = fmt.Fprint(buf, "]")
 		} else if ei, ok := t[i].Value.(*eventid.T); ok {
 			_, _ = fmt.Fprintf(buf, "\"%s\"", ei.String())
+		} else if pk, ok := t[i].Value.(*pubkey.T); ok {
+			_, _ = fmt.Fprintf(buf, "\"%s\"", pk.String())
 		} else {
 			_, _ = fmt.Fprint(buf, t[i].Value)
 		}

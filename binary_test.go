@@ -67,7 +67,7 @@ func BenchmarkEncoding(b *testing.B) {
 		bb.ReportAllocs()
 		var counter int
 		for i = 0; i < bb.N; i++ {
-			out = evts[counter].Marshal(out)
+			out, _ = evts[counter].Marshal(out)
 			out = out[:0]
 			counter++
 			if counter != len(evts) {

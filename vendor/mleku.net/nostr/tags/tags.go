@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
+	"mleku.net/log"
 	"mleku.net/nostr/tag"
-	"mleku.net/slog"
 )
 
 var log, chk = slog.New(os.Stderr)

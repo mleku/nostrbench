@@ -64,7 +64,7 @@ func (e Descending) Less(i, j int) bool { return e[i].CreatedAt > e[j].CreatedAt
 
 func (e Descending) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
 
-func (ev *T) Marshal(dst B) (b B) {
+func (ev *T) Marshal(dst B) (b B, err error) {
 	// open parentheses
 	dst = append(dst, '{')
 	// ID
@@ -101,11 +101,14 @@ func (ev *T) Marshal(dst B) (b B) {
 }
 
 func (ev *T) MarshalJSON() (b B, err error) {
-	b = ev.Marshal(nil)
+	b, err = ev.Marshal(nil)
 	return
 }
 
-func (ev *T) Serialize() (b B) { return ev.Marshal(nil) }
+func (ev *T) Serialize() (b B) {
+	b, _ = ev.Marshal(nil)
+	return
+}
 
 // states of the unmarshaler
 const (

@@ -11,6 +11,7 @@ import (
 	"mleku.net/nostr/eventid"
 	"mleku.net/nostr/hex"
 	"mleku.net/nostr/kind"
+	"mleku.net/nostr/pubkey"
 	"mleku.net/nostr/tag"
 	"mleku.net/nostr/tags"
 	"mleku.net/nostr/timestamp"
@@ -84,13 +85,15 @@ func (r *ReadBuffer) ReadID() (id *eventid.T, err error) {
 	return
 }
 
-func (r *ReadBuffer) ReadPubKey() (pk string, err error) {
+func (r *ReadBuffer) ReadPubKey() (pk *pubkey.T, err error) {
 	end := r.Pos + FieldSizes[PubKey]
 	if len(r.Buf) < end {
 		err = log.E.Err("%v", EOF)
 		return
 	}
-	pk = hex.Enc(r.Buf[r.Pos:end])
+	if pk, err = pubkey.NewFromBytes(r.Buf[r.Pos:end]); chk.E(err) {
+		return
+	}
 	r.Pos = end
 	return
 }

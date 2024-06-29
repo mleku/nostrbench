@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/minio/sha256-simd"
+	"mleku.net/log"
 	"mleku.net/nostr/hex"
-	"mleku.net/slog"
 )
 
 var log, chk = slog.New(os.Stderr)
@@ -41,7 +41,7 @@ func NewFromBytes(b []byte) (ei *T, err error) {
 
 func (ei *T) String() string {
 	if ei.b == nil {
-		panic("no bytes in eventid")
+		return ""
 	}
 	return hex.Enc(ei.b[:sha256.Size])
 }
@@ -80,6 +80,7 @@ func (ei *T) UnmarshalJSON(b []byte) (err error) {
 		log.E.Ln(string(b))
 		return
 	}
+	ei.b = make([]byte, 0, sha256.Size)
 	ei.b, err = hex.DecAppend(ei.b, b)
 	return
 }
@@ -92,6 +93,6 @@ func NewFromString(s string) (ei *T, err error) {
 			len(s), 2*sha256.Size)
 	}
 	ei = &T{b: make([]byte, 0, sha256.Size)}
-	ei.b = hex.EncAppend(ei.b, []byte(s))
+	ei.b, err = hex.DecAppend(ei.b, []byte(s))
 	return
 }
