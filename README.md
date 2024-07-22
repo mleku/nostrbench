@@ -7,16 +7,14 @@ goos: linux
 goarch: amd64
 pkg: github.com/mleku/nostrbench
 cpu: AMD Ryzen 5 PRO 4650G with Radeon Graphics
-BenchmarkEncoding/nodl.Marshal-12                1000000              1163 ns/op               0 B/op          0 allocs/op
-BenchmarkEncoding/event2.MarshalJSON-12           140084              7148 ns/op            3631 B/op         41 allocs/op
-BenchmarkEncoding/event2.EventToBinary-12        1784491             659.0 ns/op             286 B/op          3 allocs/op
-BenchmarkEncoding/easyjson.Marshal-12             594602              2021 ns/op            1629 B/op          6 allocs/op
-BenchmarkEncoding/gob.Encode-12                   185842              6141 ns/op            4877 B/op         43 allocs/op
-BenchmarkEncoding/binary.Marshal-12                94168             10931 ns/op           73789 B/op          1 allocs/op
-BenchmarkDecoding/nodl.Unmarshal-12               476563              2939 ns/op            1357 B/op         15 allocs/op
-BenchmarkDecoding/event2.UnmarshalJSON-12         152085              8196 ns/op            2257 B/op         22 allocs/op
-BenchmarkDecoding/event2.BinaryToEvent-12         856695              1382 ns/op            1205 B/op         15 allocs/op
-BenchmarkDecoding/easyjson.Unmarshal-12           578265              2313 ns/op            2322 B/op         17 allocs/op
-BenchmarkDecoding/gob.Decode-12                    54600             23911 ns/op           10642 B/op        248 allocs/op
-BenchmarkDecoding/binary.Unmarshal-12            1484220             813.4 ns/op             769 B/op         10 allocs/op
+BenchmarkEncodingEasyJSON-12              687991              1790 ns/op            1631 B/op          6 allocs/op
+BenchmarkDecodingEasyJSON-12              676521              1777 ns/op            1413 B/op         16 allocs/op
+BenchmarkEncodingGob-12                   184216              5982 ns/op            4872 B/op         43 allocs/op
+BenchmarkDecodingGob-12                    55344             21500 ns/op           10061 B/op        236 allocs/op
+BenchmarkEncodingFiatjafBinary-12          99108             11383 ns/op           73789 B/op          1 allocs/op
+BenchmarkDecodingFiatjafBinary-12        1370816               863.9 ns/op           769 B/op         10 allocs/op
+BenchmarkMlekuMarshalJSON-12             1000000              1149 ns/op               0 B/op          0 allocs/op
+BenchmarkMlekuUnmarshalJSON-12            609270              1951 ns/op             684 B/op         13 allocs/op
+BenchmarkMlekuMarshalBinary-12           2982892               402.2 ns/op           600 B/op          2 allocs/op
+BenchmarkMlekuUnmarshalBinary-12         1571326               767.5 ns/op          1096 B/op         14 allocs/op
 ```
