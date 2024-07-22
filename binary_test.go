@@ -6,305 +6,316 @@ import (
 	_ "embed"
 	"encoding/gob"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/mailru/easyjson"
-	event3 "github.com/mleku/nodl/pkg/event"
+	mleku "github.com/mleku/nodl/pkg/codec/event"
+	"github.com/mleku/nodl/pkg/util/lol"
 	"github.com/nbd-wtf/go-nostr"
-	. "github.com/nbd-wtf/go-nostr/binary"
-	event2 "mleku.net/nostr/event"
+	"github.com/nbd-wtf/go-nostr/binary"
 )
 
 //go:embed out.jsonl
 var rawEvents []byte
 
-var normalEvents []string
-
-var evts = make([]*event3.T, 0, 10000)
-
-func init() {
-	// decompress embedded rawEvents
-	buf := bytes.NewBuffer(rawEvents)
-	scanner := bufio.NewScanner(buf)
-	scanBuffer := make([]byte, 0, 1_000_000)
-	scanner.Buffer(scanBuffer, 999_999)
+func BenchmarkEncodingEasyJSON(b *testing.B) {
+	b.StopTimer()
+	evts := make([]*nostr.Event, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	scanBuf := make([]byte, 1_000_000)
+	scanner.Buffer(scanBuf, len(scanBuf))
 	for scanner.Scan() {
-		s := string(scanner.Bytes())
-		normalEvents = append(normalEvents, s)
+		jevt := scanner.Bytes()
+		evt := &nostr.Event{}
+		_ = json.Unmarshal(jevt, evt)
+		evts = append(evts, evt)
 	}
-	scanner = bufio.NewScanner(bytes.NewBuffer(rawEvents))
-	var ev *event3.T
+	b.ReportAllocs()
+	b.StartTimer()
+	var counter int
+	for i := 0; i < b.N; i++ {
+		easyjson.Marshal(evts[counter])
+		counter++
+		if counter == len(evts) {
+			counter = 0
+		}
+	}
+}
+
+func BenchmarkDecodingEasyJSON(b *testing.B) {
+	b.StopTimer()
+	normalEvents := make([][]byte, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	scanBuf := make([]byte, 1_000_000)
+	scanner.Buffer(scanBuf, len(scanBuf))
+	for scanner.Scan() {
+		sb := scanner.Bytes()
+		eb := make([]byte, len(sb))
+		copy(eb, sb)
+		normalEvents = append(normalEvents, eb)
+	}
+	b.ReportAllocs()
+	b.StartTimer()
+	var counter int
+	for i := 0; i < b.N; i++ {
+		evt := &nostr.Event{}
+		err := easyjson.Unmarshal(normalEvents[counter], evt)
+		if err != nil {
+			b.Fatalf("failed to unmarshal: %s", err)
+		}
+		counter++
+		if counter == len(normalEvents) {
+			counter = 0
+		}
+	}
+}
+
+func BenchmarkEncodingGob(b *testing.B) {
+	b.StopTimer()
+	evts := make([]*nostr.Event, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	scanBuf := make([]byte, 1_000_000)
+	scanner.Buffer(scanBuf, len(scanBuf))
+	for scanner.Scan() {
+		jevt := scanner.Bytes()
+		evt := &nostr.Event{}
+		json.Unmarshal(jevt, evt)
+		evts = append(evts, evt)
+	}
+	b.ReportAllocs()
+	b.StartTimer()
+	var counter int
+	for i := 0; i < b.N; i++ {
+		var buf bytes.Buffer
+		gob.NewEncoder(&buf).Encode(evts[counter])
+		counter++
+		if counter == len(evts) {
+			counter = 0
+		}
+		_ = buf.Bytes()
+	}
+}
+
+func BenchmarkDecodingGob(b *testing.B) {
+	b.StopTimer()
+	normalEvents := make([][]byte, 0, 9999)
+	gevents := make([][]byte, 0, cap(normalEvents))
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	scanBuf := make([]byte, 1_000_000)
+	scanner.Buffer(scanBuf, len(scanBuf))
+	for scanner.Scan() {
+		sb := scanner.Bytes()
+		evt := &nostr.Event{}
+		_ = json.Unmarshal(sb, evt)
+		var buf bytes.Buffer
+		_ = gob.NewEncoder(&buf).Encode(evt)
+		gevents = append(gevents, buf.Bytes())
+	}
+	b.ReportAllocs()
+	b.StartTimer()
+	var counter int
+	evt := &nostr.Event{}
+	for i := 0; i < b.N; i++ {
+		buf := bytes.NewBuffer(gevents[counter])
+		_ = gob.NewDecoder(buf).Decode(evt)
+		counter++
+		if counter == len(gevents) {
+			counter = 0
+		}
+	}
+}
+
+func BenchmarkEncodingFiatjafBinary(b *testing.B) {
+	b.StopTimer()
+	evts := make([]*nostr.Event, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	scanBuf := make([]byte, 1_000_000)
+	scanner.Buffer(scanBuf, len(scanBuf))
+	for scanner.Scan() {
+		jevt := scanner.Bytes()
+		evt := &nostr.Event{}
+		_ = json.Unmarshal(jevt, evt)
+		evts = append(evts, evt)
+	}
+	b.ReportAllocs()
+	b.StartTimer()
+	var counter int
+	for i := 0; i < b.N; i++ {
+		_, _ = binary.Marshal(evts[counter])
+		counter++
+		if counter == len(evts) {
+			counter = 0
+		}
+	}
+}
+
+func BenchmarkDecodingFiatjafBinary(b *testing.B) {
+	b.StopTimer()
+	events := make([][]byte, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	scanBuf := make([]byte, 1_000_000)
+	scanner.Buffer(scanBuf, len(scanBuf))
+	for scanner.Scan() {
+		sb := scanner.Bytes()
+		evt := &nostr.Event{}
+		_ = json.Unmarshal(sb, evt)
+		bevt, _ := binary.Marshal(evt)
+		events = append(events, bevt)
+	}
+	b.ReportAllocs()
+	b.StartTimer()
+	var counter int
+	for i := 0; i < b.N; i++ {
+		evt := &nostr.Event{}
+		err := binary.Unmarshal(events[counter], evt)
+		if err != nil {
+			b.Fatalf("failed to unmarshal: %s", err)
+		}
+		counter++
+		if counter == len(events) {
+			counter = 0
+		}
+	}
+}
+
+type (
+	B = []byte
+	S = string
+	I = int
+	E = error
+)
+
+var (
+	log, chk, errorf = lol.New(os.Stderr)
+	equals           = bytes.Equal
+)
+
+func BenchmarkMlekuMarshalJSON(bb *testing.B) {
+	bb.StopTimer()
+	var i int
+	var out B
 	var err error
+	evts := make([]*mleku.T, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	buf := make(B, 1_000_000)
+	scanner.Buffer(buf, len(buf))
 	for scanner.Scan() {
 		b := scanner.Bytes()
-		if ev, _, err = event3.Unmarshal(b); err != nil {
-			panic(err)
+		ea := mleku.New()
+		b, err = ea.UnmarshalJSON(b)
+		if err != nil {
+			continue
 		}
-		evts = append(evts, ev)
+		evts = append(evts, ea)
 	}
-
+	bb.ReportAllocs()
+	var counter int
+	out = out[:0]
+	bb.StartTimer()
+	for i = 0; i < bb.N; i++ {
+		out, _ = evts[counter].MarshalJSON(out)
+		out = out[:0]
+		counter++
+		if counter != len(evts) {
+			counter = 0
+		}
+	}
 }
 
-func BenchmarkEncoding(b *testing.B) {
-	events := make([]*nostr.Event, len(normalEvents))
-	events2 := make([]*event2.T, len(normalEvents))
-	binaryEvents := make([]*Event, len(normalEvents))
-	for i, jevt := range normalEvents {
-		evt := &nostr.Event{}
-		json.Unmarshal([]byte(jevt), evt)
-		events[i] = evt
-		binaryEvents[i] = BinaryEvent(evt)
-		evt2 := &event2.T{}
-		if err := json.Unmarshal([]byte(normalEvents[i]), evt2); err != nil {
-			panic(err)
+func BenchmarkMlekuUnmarshalJSON(bb *testing.B) {
+	var i int
+	var err error
+	evts := make([]*mleku.T, 9999)
+	bb.ReportAllocs()
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	buf := make(B, 1_000_000)
+	scanner.Buffer(buf, len(buf))
+	var counter I
+	for i = 0; i < bb.N; i++ {
+		if !scanner.Scan() {
+			scanner = bufio.NewScanner(bytes.NewBuffer(rawEvents))
+			scanner.Scan()
 		}
-		events2[i] = evt2
+		b := scanner.Bytes()
+		ea := mleku.New()
+		b, err = ea.UnmarshalJSON(b)
+		if err != nil {
+			continue
+		}
+		evts[counter] = ea
+		b = b[:0]
+		if counter > 9999 {
+			counter = 0
+		}
 	}
-
-	b.Run("nodl.Marshal", func(bb *testing.B) {
-		var i int
-		var out []byte
-		bb.ReportAllocs()
-		var counter int
-		for i = 0; i < bb.N; i++ {
-			out, _ = evts[counter].Marshal(out)
-			out = out[:0]
-			counter++
-			if counter != len(evts) {
-				counter = 0
-			}
-		}
-	})
-
-	b.Run("event2.MarshalJSON", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			_, _ = events2[counter].MarshalJSON()
-			counter++
-			if counter == len(events2) {
-				counter = 0
-			}
-		}
-	})
-
-	b.Run("event2.EventToBinary", func(b *testing.B) {
-		b.ReportAllocs()
-		var maxSize int
-		for _, evt := range events2 {
-			m := event2.EstimateSize(evt)
-			if m > maxSize {
-				maxSize = m
-			}
-		}
-		evtBuf := event2.NewWriteBuffer(maxSize)
-		var counter int
-		for i := 0; i < b.N; i++ {
-			_ = evtBuf.WriteEvent(events2[counter])
-			evtBuf.Buf = evtBuf.Buf[:0]
-			counter++
-			if counter == len(events2) {
-				counter = 0
-			}
-		}
-	})
-
-	b.Run("easyjson.Marshal", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			easyjson.Marshal(events[counter])
-			counter++
-			if counter == len(events) {
-				counter = 0
-			}
-		}
-	})
-
-	b.Run("gob.Encode", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			var buf bytes.Buffer
-			gob.NewEncoder(&buf).Encode(events[counter])
-			counter++
-			if counter == len(events) {
-				counter = 0
-			}
-			_ = buf.Bytes()
-		}
-	})
-
-	b.Run("binary.Marshal", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			Marshal(events[counter])
-			counter++
-			if counter == len(events) {
-				counter = 0
-			}
-		}
-	})
-
-	// this does not comprehend rawEvents over 64kb in size
-	// b.Run("binary.MarshalBinary", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, bevt := range binaryEvents {
-	// 			MarshalBinary(bevt)
-	// 		}
-	// 	}
-	// })
-
 }
 
-func BenchmarkDecoding(b *testing.B) {
-	events := make([][]byte, len(normalEvents))
-	gevents := make([][]byte, len(normalEvents))
-	bevents := make([][]byte, len(normalEvents))
-	for i, jevt := range normalEvents {
-		evt := &nostr.Event{}
-		json.Unmarshal([]byte(jevt), evt)
-		bevt, _ := Marshal(evt)
-		events[i] = bevt
-
-		var buf bytes.Buffer
-		gob.NewEncoder(&buf).Encode(evt)
-		gevents[i] = buf.Bytes()
-
-		evt2 := &event2.T{}
-		json.Unmarshal([]byte(jevt), evt2)
-		bevt2, _ := event2.EventToBinary(evt2)
-		bevents[i] = bevt2
+func BenchmarkMlekuMarshalBinary(bb *testing.B) {
+	bb.StopTimer()
+	var i int
+	var out B
+	var err error
+	evts := make([]*mleku.T, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	buf := make(B, 1_000_000)
+	scanner.Buffer(buf, len(buf))
+	for scanner.Scan() {
+		b := scanner.Bytes()
+		ea := mleku.New()
+		b, err = ea.UnmarshalJSON(b)
+		if err != nil {
+			continue
+		}
+		evts = append(evts, ea)
 	}
-
-	b.Run("nodl.Unmarshal", func(bb *testing.B) {
-		bb.ReportAllocs()
-		scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
-		var ev *event3.T
-		var err error
-		for i := 0; i < bb.N; i++ {
-			if !scanner.Scan() {
-				scanner = bufio.NewScanner(bytes.NewBuffer(rawEvents))
-				scanner.Scan()
-			}
-			b := scanner.Bytes()
-			if ev, _, err = event3.Unmarshal(b); err != nil {
-				bb.Fatal(err)
-			}
-			evts = append(evts, ev)
+	var counter int
+	out = out[:0]
+	bb.ReportAllocs()
+	bb.StartTimer()
+	for i = 0; i < bb.N; i++ {
+		out, _ = evts[counter].MarshalBinary(out)
+		out = out[:0]
+		counter++
+		if counter != len(evts) {
+			counter = 0
 		}
-	})
+	}
+}
 
-	b.Run("event2.UnmarshalJSON", func(b *testing.B) {
-		b.ReportAllocs()
-		var ev event2.T
-		var counter int
-		for i := 0; i < b.N; i++ {
-			if err := json.Unmarshal([]byte(normalEvents[counter]),
-				&ev); err != nil {
-			}
-			counter++
-			if counter == len(normalEvents) {
-				counter = 0
-			}
+func BenchmarkMlekuUnmarshalBinary(bb *testing.B) {
+	bb.StopTimer()
+	var i int
+	var out B
+	var err error
+	evts := make([]B, 0, 9999)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rawEvents))
+	buf := make(B, 1_000_000)
+	scanner.Buffer(buf, len(buf))
+	for scanner.Scan() {
+		b := scanner.Bytes()
+		ea := mleku.New()
+		b, err = ea.UnmarshalJSON(b)
+		if err != nil {
+			continue
 		}
-	})
-
-	b.Run("event2.BinaryToEvent", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			event2.BinaryToEvent(bevents[counter])
-			counter++
-			if counter == len(bevents) {
-				counter = 0
-			}
+		out = make(B, len(b))
+		out, _ = ea.MarshalBinary(out)
+		evts = append(evts, out)
+	}
+	bb.ReportAllocs()
+	var counter int
+	bb.StartTimer()
+	ev := mleku.New()
+	for i = 0; i < bb.N; i++ {
+		l := len(evts[counter])
+		b := make(B, l)
+		copy(b, evts[counter])
+		b, _ = ev.UnmarshalBinary(b)
+		out = out[:0]
+		counter++
+		if counter != len(evts) {
+			counter = 0
 		}
-	})
-
-	b.Run("easyjson.Unmarshal", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			evt := &nostr.Event{}
-			err := easyjson.Unmarshal([]byte(normalEvents[counter]), evt)
-			if err != nil {
-				b.Fatalf("failed to unmarshal: %s", err)
-			}
-			counter++
-			if counter == len(normalEvents) {
-				counter = 0
-			}
-		}
-	})
-
-	b.Run("gob.Decode", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			evt := &nostr.Event{}
-			buf := bytes.NewBuffer(gevents[counter])
-			evt = &nostr.Event{}
-			gob.NewDecoder(buf).Decode(evt)
-			counter++
-			if counter == len(gevents) {
-				counter = 0
-			}
-		}
-	})
-
-	b.Run("binary.Unmarshal", func(b *testing.B) {
-		b.ReportAllocs()
-		var counter int
-		for i := 0; i < b.N; i++ {
-			evt := &nostr.Event{}
-			err := Unmarshal(events[counter], evt)
-			if err != nil {
-				b.Fatalf("failed to unmarshal: %s", err)
-			}
-			counter++
-			if counter == len(events) {
-				counter = 0
-			}
-		}
-	})
-
-	// b.Run("binary.UnmarshalBinary", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, bevt := range rawEvents {
-	// 			evt := &Event{}
-	// 			err := UnmarshalBinary(bevt, evt)
-	// 			if err != nil {
-	// 				b.Fatalf("failed to unmarshal: %s", err)
-	// 			}
-	// 		}
-	// 	}
-	// })
-
-	// b.Run("easyjson.Unmarshal+sig", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, nevt := range normalEvents {
-	// 			evt := &nostr.Event{}
-	// 			err := easyjson.Unmarshal([]byte(nevt), evt)
-	// 			if err != nil {
-	// 				b.Fatalf("failed to unmarshal: %s", err)
-	// 			}
-	// 			evt.CheckSignature()
-	// 		}
-	// 	}
-	// })
-
-	// b.Run("binary.Unmarshal+sig", func(b *testing.B) {
-	// 	for i := 0; i < b.N; i++ {
-	// 		for _, bevt := range rawEvents {
-	// 			evt := &nostr.Event{}
-	// 			err := Unmarshal(bevt, evt)
-	// 			if err != nil {
-	// 				b.Fatalf("failed to unmarshal: %s", err)
-	// 			}
-	// 			evt.CheckSignature()
-	// 		}
-	// 	}
-	// })
+	}
 }
